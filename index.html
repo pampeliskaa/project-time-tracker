@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Time Tracker</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f8fafc;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: auto;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 32px;
+        margin-bottom: 20px;
+        color: #0f172a;
+      }
+
+      .add-form {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .add-form input {
+        padding: 10px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+
+      .add-button {
+        padding: 10px 20px;
+        background-color: #0ea5e9;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .add-button:hover {
+        background-color: #0284c7;
+      }
+
+      .color-picker {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .color-button {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+      }
+
+      .color-button.selected {
+        border: 3px solid black;
+      }
+
+      .project-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: white;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        border-left: 8px solid transparent;
+        transition: background 0.2s;
+      }
+
+      .project-row.running {
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+      }
+
+      .project-row.completed {
+        opacity: 0.5;
+      }
+
+      .project-time {
+        font-family: monospace;
+        font-size: 28px;
+        flex-grow: 1;
+        text-align: center;
+      }
+
+      .project-info {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .project-name {
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .project-category {
+        font-size: 14px;
+        font-weight: bold;
+        color: #475569;
+        margin-left: 20px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 6px;
+      }
+
+      .controls button {
+        padding: 6px 10px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        color: white;
+      }
+
+      .start {
+        background: #0ea5e9;
+      }
+      .complete {
+        background: #64748b;
+      }
+      .delete {
+        background: #ef4444;
+      }
+      .edit {
+        background: #f97316;
+      }
+      .save {
+        background: #22c55e;
+      }
+
+      .editable-input {
+        padding: 6px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+      }
+
+      .edit-color-picker {
+        display: flex;
+        gap: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Project Time Tracker</h1>
+
+      <form class="add-form" onsubmit="addProject(); return false;">
+        <input
+          type="text"
+          id="projectName"
+          placeholder="Název projektu"
+          required
+        />
+        <input type="text" id="projectCategory" placeholder="Kategorie" />
+        <div class="color-picker">
+          <div
+            class="color-button"
+            style="background-color: #0ea5e9"
+            data-color="#0ea5e9"
+          ></div>
+          <div
+            class="color-button"
+            style="background-color: #facc15"
+            data-color="#facc15"
+          ></div>
+          <div
+            class="color-button"
+            style="background-color: #10b981"
+            data-color="#10b981"
+          ></div>
+          <div
+            class="color-button"
+            style="background-color: #ef4444"
+            data-color="#ef4444"
+          ></div>
+        </div>
+        <button class="add-button" type="submit">Přidat</button>
+      </form>
+
+      <div id="projects"></div>
+    </div>
+
+    <script>
+      let projects = JSON.parse(localStorage.getItem("projects")) || [];
+      let nextId = projects.length
+        ? Math.max(...projects.map((p) => p.id)) + 1
+        : 1;
+      let selectedColor = "#0ea5e9";
+
+      document.querySelectorAll(".color-button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedColor = btn.getAttribute("data-color");
+          document
+            .querySelectorAll(".color-button")
+            .forEach((b) => b.classList.remove("selected"));
+          btn.classList.add("selected");
+        });
+      });
+      document
+        .querySelector('.color-button[data-color="' + selectedColor + '"]')
+        .classList.add("selected");
+
+      function saveProjects() {
+        localStorage.setItem("projects", JSON.stringify(projects));
+      }
+
+      function format(seconds) {
+        const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
+        const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+        const s = String(seconds % 60).padStart(2, "0");
+        return `${h}:${m}:${s}`;
+      }
+
+      function addProject() {
+        const name = document.getElementById("projectName").value.trim();
+        const category = document
+          .getElementById("projectCategory")
+          .value.trim();
+        if (!name) return;
+
+        projects.push({
+          id: nextId++,
+          name,
+          category,
+          color: selectedColor,
+          time: 0,
+          running: false,
+          completed: false,
+          editing: false,
+          interval: null,
+        });
+
+        document.getElementById("projectName").value = "";
+        document.getElementById("projectCategory").value = "";
+        render();
+        saveProjects();
+      }
+
+      function toggleProject(id) {
+        const p = projects.find((p) => p.id === id);
+        if (!p) return;
+        p.running = !p.running;
+
+        if (p.running) {
+          p.interval = setInterval(() => {
+            p.time++;
+            render();
+            saveProjects();
+          }, 1000);
+        } else {
+          clearInterval(p.interval);
+        }
+
+        render();
+        saveProjects();
+      }
+
+      function toggleComplete(id) {
+        const p = projects.find((p) => p.id === id);
+        if (!p) return;
+        p.completed = !p.completed;
+        if (p.running) {
+          p.running = false;
+          clearInterval(p.interval);
+        }
+        render();
+        saveProjects();
+      }
+
+      function deleteProject(id) {
+        const p = projects.find((p) => p.id === id);
+        if (p?.interval) clearInterval(p.interval);
+        projects = projects.filter((p) => p.id !== id);
+        render();
+        saveProjects();
+      }
+
+      function editProject(id) {
+        projects.forEach((p) => (p.editing = false));
+        const p = projects.find((p) => p.id === id);
+        if (p) p.editing = true;
+        render();
+      }
+
+      function saveEdit(id) {
+        const p = projects.find((p) => p.id === id);
+        if (!p) return;
+        p.name = document.getElementById(`edit-name-${id}`).value;
+        p.category = document.getElementById(`edit-category-${id}`).value;
+        p.color =
+          document
+            .querySelector(`.edit-color-${id}.selected`)
+            ?.getAttribute("data-color") || p.color;
+        p.editing = false;
+        render();
+        saveProjects();
+      }
+
+      function render() {
+        const container = document.getElementById("projects");
+        container.innerHTML = "";
+
+        projects.forEach((p) => {
+          const row = document.createElement("div");
+          row.className = "project-row";
+          if (p.running) row.classList.add("running");
+          if (p.completed) row.classList.add("completed");
+          row.style.borderLeftColor = p.color;
+
+          if (p.editing) {
+            row.innerHTML = `
+            <input id="edit-name-${p.id}" class="editable-input" value="${
+              p.name
+            }" />
+            <input id="edit-category-${p.id}" class="editable-input" value="${
+              p.category
+            }" />
+            <div class="edit-color-picker">
+              ${["#0ea5e9", "#facc15", "#10b981", "#ef4444"]
+                .map(
+                  (c) => `
+                <div class="color-button edit-color-${p.id} ${
+                    c === p.color ? "selected" : ""
+                  }" style="background-color:${c}" data-color="${c}" onclick="selectEditColor(${
+                    p.id
+                  }, '${c}')"></div>
+              `
+                )
+                .join("")}
+            </div>
+            <div class="project-time">${format(p.time)}</div>
+            <div class="controls">
+              <button class="save" onclick="saveEdit(${p.id})">💾</button>
+            </div>
+          `;
+          } else {
+            row.innerHTML = `
+            <div class="project-info">
+              <div class="project-name">${p.name}</div>
+              <div class="project-category">${p.category}</div>
+            </div>
+            <div class="project-time">${format(p.time)}</div>
+            <div class="controls">
+              <button class="start" onclick="toggleProject(${p.id})">${
+              p.running ? "Zastavit" : "Spustit"
+            }</button>
+              <button class="complete" onclick="toggleComplete(${p.id})">${
+              p.completed ? "↩" : "✓"
+            }</button>
+              <button class="edit" onclick="editProject(${p.id})">✎</button>
+              <button class="delete" onclick="deleteProject(${
+                p.id
+              })">🗑️</button>
+            </div>
+          `;
+          }
+
+          container.appendChild(row);
+        });
+      }
+
+      function selectEditColor(id, color) {
+        document
+          .querySelectorAll(`.edit-color-${id}`)
+          .forEach((btn) => btn.classList.remove("selected"));
+        document
+          .querySelector(`.edit-color-${id}[data-color="${color}"]`)
+          ?.classList.add("selected");
+      }
+
+      render();
+    </script>
+  </body>
+</html>
