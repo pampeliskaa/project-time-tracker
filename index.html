@@ -75,9 +75,9 @@
       .project-row {
         display: flex;
         align-items: center;
-        gap: 16px;
+        justify-content: space-between;
         background: white;
-        padding: 12px 16px;
+        padding: 20px;
         margin-bottom: 10px;
         border-radius: 8px;
         border-left: 8px solid transparent;
@@ -95,15 +95,17 @@
       .project-time {
         font-family: monospace;
         font-size: 28px;
-        flex-grow: 1;
         text-align: center;
+        min-width: 140px;
+        align-self: center;
       }
 
       .project-info {
         display: flex;
         flex-direction: row;
-        gap: 8px;
         align-items: center;
+        gap: 20px;
+        min-width: 200px;
       }
 
       .project-name {
@@ -121,6 +123,7 @@
       .controls {
         display: flex;
         gap: 6px;
+        align-items: center;
       }
 
       .controls button {
@@ -300,13 +303,6 @@
         saveProjects();
       }
 
-      function editProject(id) {
-        projects.forEach((p) => (p.editing = false));
-        const p = projects.find((p) => p.id === id);
-        if (p) p.editing = true;
-        render();
-      }
-
       function saveEdit(id) {
         const p = projects.find((p) => p.id === id);
         if (!p) return;
@@ -360,7 +356,7 @@
           `;
           } else {
             row.innerHTML = `
-            <div class="project-info">
+             <div class="project-info">
               <div class="project-name">${p.name}</div>
               <div class="project-category">${p.category}</div>
             </div>
