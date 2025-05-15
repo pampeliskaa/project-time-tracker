@@ -259,7 +259,7 @@
 
       function toggleProject(id) {
         const p = projects.find((p) => p.id === id);
-        if (!p) return;
+        if (!p || p.completed) return; // ✅ Nelze spustit, pokud je hotový
         p.running = !p.running;
 
         if (p.running) {
@@ -290,7 +290,11 @@
 
       function deleteProject(id) {
         const p = projects.find((p) => p.id === id);
-        if (p?.interval) clearInterval(p.interval);
+        if (!p) return;
+        const confirmed = confirm("Opravdu chcete smazat tento úkol?");
+        if (!confirmed) return;
+
+        if (p.interval) clearInterval(p.interval);
         projects = projects.filter((p) => p.id !== id);
         render();
         saveProjects();
